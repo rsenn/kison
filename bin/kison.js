@@ -14,7 +14,7 @@ program
     // defaults bool true
     .option('--no-compressSymbol', 'Set compress symbol')
     .option('--compressLexerState', 'Set compress lexer state')
-    .parse(process.argv);
+    .parse(scriptArgs ? ['qjs', ...scriptArgs] : process.argv);
 
 var options = program.options;
 

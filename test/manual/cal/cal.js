@@ -521,91 +521,58 @@ parser.table = {
         }
     }
 };
-parser.parse = function parse(input, filename) {
-    var state, symbol, ret, action, $$;
-    var self = this;
-    var lexer = self.lexer;
-    var table = self.table;
-    var gotos = table.gotos;
-    var tableAction = table.action;
-    var productions = self.productions;    // for debug info
-    // for debug info
-    var prefix = filename ? 'in file: ' + filename + ' ' : '';
-    var valueStack = [];
-    var stateStack = [0];
-    var symbolStack = [];
-    lexer.resetInput(input);
-    while (1) {
-        // retrieve state number from top of stack
-        state = peekStack(stateStack);
-        if (!symbol) {
-            symbol = lexer.lex();
-        }
-        if (symbol) {
-            // read action for current state and first input
-            action = tableAction[state] && tableAction[state][symbol];
-        } else {
-            action = null;
-        }
-        if (!action) {
-            var expected = [];
-            var error;    //#JSCOVERAGE_IF
-            //#JSCOVERAGE_IF
-            if (tableAction[state]) {
-                each(tableAction[state], function (v, symbolForState) {
-                    action = v[GrammarConst.TYPE_INDEX];
-                    var map = [];
-                    map[GrammarConst.SHIFT_TYPE] = 'shift';
-                    map[GrammarConst.REDUCE_TYPE] = 'reduce';
-                    map[GrammarConst.ACCEPT_TYPE] = 'accept';
-                    expected.push(map[action] + ':' + self.lexer.mapReverseSymbol(symbolForState));
-                });
-            }
-            error = prefix + 'syntax error at line ' + lexer.lineNumber + ':\n' + lexer.showDebugInfo() + '\n' + 'expect ' + expected.join(', ');
-            throw new Error(error);
-        }
-        switch (action[GrammarConst.TYPE_INDEX]) {
-        case GrammarConst.SHIFT_TYPE:
-            symbolStack.push(symbol);
-            valueStack.push(lexer.text);    // push state
-            // push state
-            stateStack.push(action[GrammarConst.TO_INDEX]);    // allow to read more
-            // allow to read more
-            symbol = null;
-            break;
-        case GrammarConst.REDUCE_TYPE:
-            var production = productions[action[GrammarConst.PRODUCTION_INDEX]];
-            var reducedSymbol = production.symbol || production[0];
-            var reducedAction = production.action || production[2];
-            var reducedRhs = production.rhs || production[1];
-            var len = reducedRhs.length;
-            $$ = peekStack(valueStack, len);    // default to $$ = $1
-            // default to $$ = $1
-            ret = undefined;
-            self.$$ = $$;
-            for (var i = 0; i < len; i++) {
-                self['$' + (len - i)] = peekStack(valueStack, i + 1);
-            }
-            if (reducedAction) {
-                ret = reducedAction.call(self);
-            }
-            if (ret !== undefined) {
-                $$ = ret;
-            } else {
-                $$ = self.$$;
-            }
-            var reverseIndex = len * -1;
-            stateStack.splice(reverseIndex, len);
-            valueStack.splice(reverseIndex, len);
-            symbolStack.splice(reverseIndex, len);
-            symbolStack.push(reducedSymbol);
-            valueStack.push($$);
-            var newState = gotos[peekStack(stateStack)][reducedSymbol];
-            stateStack.push(newState);
-            break;
-        case GrammarConst.ACCEPT_TYPE:
-            return $$;
-        }
+parser.parse = function parse(str) {
+    str = String(str);
+    if (str.length > 100) {
+        return;
+    }
+    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
+    if (!match) {
+        return;
+    }
+    var n = parseFloat(match[1]);
+    var type = (match[2] || 'ms').toLowerCase();
+    switch (type) {
+    case 'years':
+    case 'year':
+    case 'yrs':
+    case 'yr':
+    case 'y':
+        return n * y;
+    case 'weeks':
+    case 'week':
+    case 'w':
+        return n * w;
+    case 'days':
+    case 'day':
+    case 'd':
+        return n * d;
+    case 'hours':
+    case 'hour':
+    case 'hrs':
+    case 'hr':
+    case 'h':
+        return n * h;
+    case 'minutes':
+    case 'minute':
+    case 'mins':
+    case 'min':
+    case 'm':
+        return n * m;
+    case 'seconds':
+    case 'second':
+    case 'secs':
+    case 'sec':
+    case 's':
+        return n * s;
+    case 'milliseconds':
+    case 'millisecond':
+    case 'msecs':
+    case 'msec':
+    case 'ms':
+        return n;
+    default:
+        return undefined;
     }
 };
 return parser;
